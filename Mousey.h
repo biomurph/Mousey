@@ -5,11 +5,8 @@
 #define Mousey_H
 
 #include <Arduino.h>
-// #include "WProgram.h"
 #include <stdint.h>
-// #include <MouseDefines.h>
 #include <Mouse.h>
-// #include <MouseEye.h>
 
 // PINS
 #define	SCK  9

@@ -6,23 +6,14 @@
 #include "Mousey.h"
 
 Mousey::Mousey(){
-
+	setPins();	// initialize pins DO THIS FIRST!
 }
-
 
 boolean Mousey::start()
 {
-	// mouseEye eye(SCK,SDIO);
-	delay(1000);
-  setPins();	// initialize pins
-	// _SCK = SCK;	// keep track of the clock pin
-  // _SDIO = SDIO;	// keep track of the data  pin
-	//	SET PIN DIRECTION
-  // pinMode(SDIO, INPUT);
-  // pinMode(SCK, OUTPUT);
-  // digitalWrite(SCK,HIGH);	//clock idles high
-
-  hid = digitalRead(HID_SELECT);
+	delay(1000);	// necessary for ADNS!
+	
+  hid = digitalRead(HID_SELECT);	// check if we are in HID mode
   if(hid){
     Mouse.begin();
   } else {
@@ -34,6 +25,9 @@ boolean Mousey::start()
 	return true;
 }
 
+/*
+	CHECKS FOR AND UPDATES BUTTONS, WHEEL, X-Y MOVEMENT
+*/
 void Mousey::update(){
 	checkEye();			// checks for mouse movement and sets updateMouse
   checkWheel();		// checks for wheel movement and sets updateMouse
@@ -54,19 +48,13 @@ void Mousey::update(){
 }
 
 /*
-	WHEN MOUSE EYS SEES MOVEMENT updateMouse is set
+	WHEN MOUSE EYE SEES MOVEMENT updateMouse IS SET
 */
 
 void Mousey::checkEye() {
   getMouseEyeDelta();      // update deltaX and deltaY variables
   if (deltaX != 0 || deltaY != 0) { //when mouse is moving
-    // if (hid) {
       updateMouse = true;	// updateMouse can be set here or by checkWheel
-    // } else {
-    //   Serial.print(deltaX, DEC);               //when mouse is moving
-    //   Serial.print("\t");                          //pirnt the delta X and Y
-    //   Serial.println(deltaY, DEC);
-    // }
   }
 }
 
@@ -77,11 +65,7 @@ void Mousey::checkEye() {
 void Mousey::checkWheel(){
   if(wheelMoved){
 		wheelMoved = false;
-  // if(hid){
     updateMouse = true;	// updateMouse can be set here or by the checkEye
-  // }else{
-  //   Serial.println(wheelDelta);
-  // }
   }
 }
 
@@ -185,7 +169,7 @@ void Mousey::getMouseEyeDelta()
 {
 	deltaY = readDNS(0x42);
 	deltaX = readDNS(0x43);
-	// deltaY = ~deltaY; deltaY++;	// invert deltaY
+	deltaY = ~deltaY; deltaY++;	// invert deltaY
 	// deltaX = ~deltaX; deltaX++;	// invert deltaX
 }
 
@@ -281,14 +265,13 @@ byte Mousey::readDNS(byte outByte){
     digitalWrite(SCK,HIGH);    		//sample on rising edge
     bitWrite(inByte,i,(digitalRead(SDIO)));	//get bit
   }
-  pinMode(SDIO,OUTPUT);		//reset SDIO for next time
+  pinMode(SDIO, OUTPUT); digitalWrite(SDIO,HIGH);		//reset SDIO for next time
   return inByte;			//return byte
 }// end readDNS
 
 
 
 void Mousey::writeDNS(byte high, byte low){
-
   word outWord = word(high,low);  	//load bytes into the chute
   bitSet(outWord,15);               		//we want to write data
   for (int i=15; i>=0; i--){    		//choose bit MSB
@@ -296,8 +279,12 @@ void Mousey::writeDNS(byte high, byte low){
     digitalWrite(SDIO, (bitRead(outWord,i)));    	//send bit
     digitalWrite(SCK,HIGH);
   }
+	digitalWrite(SDIO,HIGH);
 }
 
+/*
+	SET PIN DIRECTIONS
+*/
 void Mousey::setPins()
 {
 	pinMode(LEFT, INPUT);
@@ -305,27 +292,27 @@ void Mousey::setPins()
   pinMode(HID_SELECT, INPUT);
   pinMode(WHEEL_A, INPUT);
   pinMode(WHEEL_B, INPUT);
-	pinMode(SDIO, INPUT);
-  pinMode(SCK, OUTPUT);
-  digitalWrite(SCK,HIGH);	//clock idles high
+	pinMode(SDIO, OUTPUT); digitalWrite(SDIO,HIGH); // data idles high
+  pinMode(SCK, OUTPUT); digitalWrite(SCK,HIGH);	//clock idles high
 	for(int i=0; i<2; i++){
     pinMode(wheel[i],INPUT);
   }
   // attachInterrupt(digitalPinToInterrupt(WHEEL_A), encode, CHANGE);
 }
 
+/*
+	OPPORTUNITY TO TALK TO THE MOUSE, IF YOU LIKE
+*/
+
 void Mousey::eventSerial(){
   char inChar;
   if(Serial.available()){
     inChar = Serial.read();
-
     switch(inChar){
-
       case 'h':
         hid = digitalRead(HID_SELECT);
         Serial.print("HID = "); Serial.println(hid);
         break;
-
       default:
         break;
     }
